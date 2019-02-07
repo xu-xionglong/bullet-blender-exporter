@@ -3,6 +3,20 @@ import json
 import mathutils
 import bpy
 
+def getOffsetFromAToB(a, b):
+	ta, ra, sa = a.matrix_world.decompose()
+	tb, rb, sb = b.matrix_world.decompose()
+	MtaInv = mathutils.Matrix.Translation(-ta)
+	MraInv = ra.to_matrix().inverted().to_4x4()
+	Mtb = mathutils.Matrix.Translation(tb)
+	Mrb = rb.to_matrix().to_4x4()
+	Moffset = MraInv * MtaInv * Mtb * Mrb
+	tOffset, rOffset, sOffset = Moffset.decompose()
+	tOffset.x = tOffset.x / sa.x
+	tOffset.y = tOffset.y / sa.y
+	tOffset.z = tOffset.z / sa.z
+	return tOffset, rOffset
+
 def save(context, path):
 	jsonObject = {}
 
@@ -12,10 +26,11 @@ def save(context, path):
 	jsonObject["constraints"] = []
 
 	for obj in scene.objects:
-		transform = obj.matrix_world
-		location, quaternion, scale = transform.decompose()
+		
 
 		if obj.rigid_body is not None:
+			transform = obj.matrix_world
+			location, quaternion, scale = transform.decompose()
 			rigidBodyObject = {}
 			rigidBodyObject["name"] = obj.name
 			rigidBodyObject["location"] = location[0:3]
@@ -28,7 +43,14 @@ def save(context, path):
 			rigidBodyObject["collision_shape"] = obj.rigid_body.collision_shape
 			rigidBodyObject["use_margin"] = obj.rigid_body.use_margin
 			rigidBodyObject["collision_margin"] = obj.rigid_body.collision_margin
+			group = 0
+			for i in range(0, len(obj.rigid_body.collision_groups)):
+				if obj.rigid_body.collision_groups[i]:
+					group = group | (1 << i)
+			rigidBodyObject["group"] = group
+			rigidBodyObject["mask"] = group
 			jsonObject["rigid_bodys"].append(rigidBodyObject)
+
 
 		if obj.rigid_body_constraint is not None:
 			rigidBodyConstraintObject = {}
@@ -44,34 +66,16 @@ def save(context, path):
 			object1 = obj.rigid_body_constraint.object1
 			if object1 is not None:
 				rigidBodyConstraintObject["object1"] = object1.name
-				ta, qa, sa = object1.matrix_world.decompose()
-				taInv = mathutils.Matrix.Translation(-ta)
-				qaInv = qa.to_matrix().inverted().to_4x4()
-				tc = mathutils.Matrix.Translation(location)
-				qc = quaternion.to_matrix().to_4x4()
-				mOffset = qaInv * taInv * tc * qc
-				tOffset, qOffset, sOffset = mOffset.decompose()
-				tOffset.x = tOffset.x / sa.x
-				tOffset.y = tOffset.y / sa.y
-				tOffset.z = tOffset.z / sa.z
+				tOffset, rOffset = getOffsetFromAToB(object1, obj)
 				rigidBodyConstraintObject["translation_offset_a"] = tOffset[0:3]
-				rigidBodyConstraintObject["rotation_offset_a"] = qOffset[0:4]
+				rigidBodyConstraintObject["rotation_offset_a"] = rOffset[0:4]
 
 			object2 = obj.rigid_body_constraint.object2
 			if object2 is not None:
 				rigidBodyConstraintObject["object2"] = object2.name
-				tb, qb, sb = object2.matrix_world.decompose()
-				tbInv = mathutils.Matrix.Translation(-tb)
-				qbInv = qb.to_matrix().inverted().to_4x4()
-				tc = mathutils.Matrix.Translation(location)
-				qc = quaternion.to_matrix().to_4x4()
-				mOffset = qbInv * tbInv * tc * qc
-				tOffset, qOffset, sOffset = mOffset.decompose()
-				tOffset.x = tOffset.x / sb.x
-				tOffset.y = tOffset.y / sb.y
-				tOffset.z = tOffset.z / sb.z
+				tOffset, rOffset = getOffsetFromAToB(object2, obj)
 				rigidBodyConstraintObject["translation_offset_b"] = tOffset[0:3]
-				rigidBodyConstraintObject["rotation_offset_b"] = qOffset[0:4]
+				rigidBodyConstraintObject["rotation_offset_b"] = rOffset[0:4]
 			
 			if constraintType == 'HINGE':
 				rigidBodyConstraintObject["use_limit_ang_z"] = obj.rigid_body_constraint.use_limit_ang_z
