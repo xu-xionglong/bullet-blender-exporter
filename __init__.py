@@ -2,7 +2,7 @@ bl_info = {
 	"name": "Bullet json format",
 	"author": "xionglong.xu",
 	"version": (0, 0, 1),
-	"blender": (2, 79, 0),
+	"blender": (2, 80, 0),
 	"location": "File > Import-Export",
 	"category": "Import-Export"
 }
@@ -66,12 +66,12 @@ def menu_func_export(self, context):
 def register():
 	bpy.utils.register_class(ImportBullet)
 	bpy.utils.register_class(ExportBullet)
-	bpy.types.INFO_MT_file_import.append(menu_func_import)
-	bpy.types.INFO_MT_file_export.append(menu_func_export)
+	bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
+	bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
 
 def unregister():
-	bpy.types.INFO_MT_file_import.remove(menu_func_import)
-	bpy.types.INFO_MT_file_export.remove(menu_func_export)
+	bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
+	bpy.types.TOPBAR_MT_file_export.remove(menu_func_export)
 	bpy.utils.unregister_class(ImportBullet)
 	bpy.utils.unregister_class(ExportBullet)
 	

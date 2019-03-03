@@ -10,7 +10,7 @@ def getOffsetFromAToB(a, b):
 	MraInv = ra.to_matrix().inverted().to_4x4()
 	Mtb = mathutils.Matrix.Translation(tb)
 	Mrb = rb.to_matrix().to_4x4()
-	Moffset = MraInv * MtaInv * Mtb * Mrb
+	Moffset = MraInv @ MtaInv @ Mtb @ Mrb
 	tOffset, rOffset, sOffset = Moffset.decompose()
 	tOffset.x = tOffset.x / sa.x
 	tOffset.y = tOffset.y / sa.y
@@ -44,8 +44,8 @@ def save(context, path):
 			rigidBodyObject["use_margin"] = obj.rigid_body.use_margin
 			rigidBodyObject["collision_margin"] = obj.rigid_body.collision_margin
 			group = 0
-			for i in range(0, len(obj.rigid_body.collision_groups)):
-				if obj.rigid_body.collision_groups[i]:
+			for i in range(0, len(obj.rigid_body.collision_collections)):
+				if obj.rigid_body.collision_collections[i]:
 					group = group | (1 << i)
 			rigidBodyObject["group"] = group
 			rigidBodyObject["mask"] = group
